@@ -1048,11 +1048,11 @@ def convert_uri_json(host="127.0.0.1", port=10809, socksport=10808, uri=None):
     uri = uri.replace("%2F", "/")
 
     if Vless_Reality_checker(uri) is True:
-        file = convert_uri_reality_json(host, port, socksport, uri.lower())
+        file = convert_uri_reality_json(host, port, socksport, uri)
     elif vless_ws_checker(uri) is True:
-        file = convert_uri_vless_ws_json(host, port, socksport, uri.lower())
+        file = convert_uri_vless_ws_json(host, port, socksport, uri)
     elif vless_tcp_checker(uri) is True:
-        file = convert_uri_vless_tcp_json(host, port, socksport, uri.lower())
+        file = convert_uri_vless_tcp_json(host, port, socksport, uri)
     elif vmess_ws_checker(uri) is True:
         file = convert_uri_vmess_ws_json(host, port, socksport, uri)
     elif vmess_tcp_checker(uri) is True:
