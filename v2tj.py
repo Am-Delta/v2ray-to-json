@@ -10,7 +10,7 @@ def inbound_generator(host, port, socksport):
             {
                 "tag": "socks",
                 "port": socksport,
-                "listen": "127.0.0.1",
+                "listen": host,
                 "protocol": "socks",
                 "sniffing": {
                     "enabled": True,
@@ -160,9 +160,12 @@ def convert_uri_reality_json(host, port, socksport, uri):
     }
 
     if network == "grpc":
+        serviceName = ""
+        if "serviceName=" in uri:
+            serviceName = splitter(uri, "serviceName=")
         new_dict = {
             "grpcSettings": {
-                "serviceName": "",
+                "serviceName": serviceName,
                 "multiMode": False,
                 "idle_timeout": 60,
                 "health_check_timeout": 20,
@@ -405,6 +408,22 @@ def convert_uri_vless_tcp_json(host, port, socksport, uri):
                 if fp != "none":
                     new_dict['tlsSettings'].update({"fingerprint": fp})
             data['outbounds'][0]['streamSettings'].update(new_dict)
+
+    if network == "grpc":
+        serviceName = ""
+        if "serviceName=" in uri:
+            serviceName = splitter(uri, "serviceName=")
+        new_dict = {
+            "grpcSettings": {
+                "serviceName": serviceName,
+                "multiMode": False,
+                "idle_timeout": 60,
+                "health_check_timeout": 20,
+                "permit_without_stream": False,
+                "initial_windows_size": 0
+            }
+        }
+        data['outbounds'][0]['streamSettings'].update(new_dict)
 
     data.update(inbound_generator(host, port, socksport))
 
@@ -652,6 +671,22 @@ def convert_uri_vmess_tcp_json(host, port, socksport, uri):
                     new_dict['tlsSettings'].update({"fingerprint": fp})
             data['outbounds'][0]['streamSettings'].update(new_dict)
 
+    if network == "grpc":
+        serviceName = ""
+        if decoded.get("path", None) is not None:
+            serviceName = decoded['path']
+        new_dict = {
+            "grpcSettings": {
+                "serviceName": serviceName,
+                "multiMode": False,
+                "idle_timeout": 60,
+                "health_check_timeout": 20,
+                "permit_without_stream": False,
+                "initial_windows_size": 0
+            }
+        }
+        data['outbounds'][0]['streamSettings'].update(new_dict)
+
     data.update(inbound_generator(host, port, socksport))
 
     return json_file_maker(data)
@@ -743,9 +778,12 @@ def convert_uri_trojan_reality_json(host, port, socksport, uri):
     }
 
     if network == "grpc":
+        serviceName = ""
+        if "serviceName=" in uri:
+            serviceName = splitter(uri, "serviceName=")
         new_dict = {
             "grpcSettings": {
-                "serviceName": "",
+                "serviceName": serviceName,
                 "multiMode": False,
                 "idle_timeout": 60,
                 "health_check_timeout": 20,
@@ -978,6 +1016,21 @@ def convert_uri_trojan_tcp_json(host, port, socksport, uri):
                     new_dict['tlsSettings'].update({"fingerprint": fp})
             data['outbounds'][0]['streamSettings'].update(new_dict)
 
+    if network == "grpc":
+        serviceName = ""
+        if "serviceName=" in uri:
+            serviceName = splitter(uri, "serviceName=")
+        new_dict = {
+            "grpcSettings": {
+                "serviceName": serviceName,
+                "multiMode": False,
+                "idle_timeout": 60,
+                "health_check_timeout": 20,
+                "permit_without_stream": False,
+                "initial_windows_size": 0
+            }
+        }
+
     data.update(inbound_generator(host, port, socksport))
 
     return json_file_maker(data)
@@ -998,7 +1051,7 @@ def vless_ws_checker(uri):
 
 
 def vless_tcp_checker(uri):
-    if "type=tcp" in uri and "vless://" in uri:
+    if ("type=tcp" in uri or "type=grpc" in uri) and "vless://" in uri:
         return True
     else:
         return False
@@ -1015,7 +1068,7 @@ def vmess_ws_checker(uri):
 def vmess_tcp_checker(uri):
     if "vmess://" in uri:
         decoded = json.loads(base64.b64decode(uri.split("://")[1]).decode())
-        if "tcp" == decoded['net']:
+        if ("tcp" == decoded['net']) or ("grpc" == decoded['net']):
             return True
     return False
 
@@ -1035,7 +1088,7 @@ def trojan_ws_checker(uri):
 
 
 def trojan_tcp_checker(uri):
-    if "type=tcp" in uri and "trojan://" in uri:
+    if ("type=tcp" in uri or "type=grpc" in uri) and "trojan://" in uri:
         return True
     else:
         return False
