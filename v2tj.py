@@ -506,9 +506,9 @@ def convert_uri_vmess_ws_json(host, port, socksport, uri):
             sni = ""
             if decoded.get("sni", None) is not None:
                 sni = decoded['sni']
+            alpn = []
             if decoded.get("alpn", None) is not None:
                 alpn_c = decoded['alpn']
-                alpn = []
                 if "http/1.1" in alpn_c:
                     alpn.append("http/1.1")
                 if "h2" in alpn_c:
