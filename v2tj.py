@@ -76,11 +76,11 @@ def convert_uri_reality_json(host, port, socksport, uri):
     uid = uri.split("//")[1].split("@")[0]
     address = uri.split('@')[1].split(":")[0]
     destination_port = int(uri.split(address + ':')[1].split("?")[0])
-    network = uri.split("type=")[1].split("&")[0]
-    security = uri.split("security=")[1].split("&")[0]
-    sni = uri.split("sni=")[1].split("&")[0]
-    fp = uri.split("fp=")[1].split("&")[0]
-    pbk = uri.split("pbk=")[1].split("&")[0]
+    network = splitter(uri, "type=")
+    security = splitter(uri, "security=")
+    sni = splitter(uri, "sni=")
+    fp = splitter(uri, "fp=")
+    pbk = splitter(uri, "pbk=")
 
     if "sid=" in uri:
         sid = splitter(uri, "sid=")
@@ -159,6 +159,47 @@ def convert_uri_reality_json(host, port, socksport, uri):
         ]
     }
 
+    if "host=" in uri:
+        host_http = splitter(uri, "host=")
+
+        headertype = "http"
+
+        if "headertype" in uri:
+            headertype = splitter(uri, "headertype=")
+
+        path = ["/"]
+        if "path=" in uri:
+            path = [splitter(uri, "path=")]
+
+        headers = {
+            "tcpSettings": {
+                "header": {
+                    "type": headertype,
+                    "request": {
+                        "version": "1.1",
+                        "method": "GET",
+                        "path": path,
+                        "headers": {
+                            "Host": [
+                                host_http
+                            ],
+                            "User-Agent": [
+                                ""
+                            ],
+                            "Accept-Encoding": [
+                                "gzip, deflate"
+                            ],
+                            "Connection": [
+                                "keep-alive"
+                            ],
+                            "Pragma": "no-cache"
+                        }
+                    }
+                }
+            }
+        }
+        data['outbounds'][0]['streamSettings'].update(headers)
+
     if network == "grpc":
         serviceName = ""
         if "serviceName=" in uri:
@@ -191,6 +232,8 @@ def convert_uri_vless_ws_json(host, port, socksport, uri):
     if "host=" in uri:
         host_http = splitter(uri, "host=")
         headers = {"Host": host_http}
+    if "path=" in uri:
+        path = splitter(uri, "path=")
 
     data = {
         "log": {
@@ -223,7 +266,7 @@ def convert_uri_vless_ws_json(host, port, socksport, uri):
                 "streamSettings": {
                     "network": network,
                     "wsSettings": {
-                        "path": "/",
+                        "path": path,
                         "headers": headers
                     }
                 },
@@ -348,6 +391,10 @@ def convert_uri_vless_tcp_json(host, port, socksport, uri):
         if "headertype" in uri:
             headertype = splitter(uri, "headertype=")
 
+        path = ["/"]
+        if "path=" in uri:
+            path = [splitter(uri, "path=")]
+
         headers = {
             "tcpSettings": {
                 "header": {
@@ -355,9 +402,7 @@ def convert_uri_vless_tcp_json(host, port, socksport, uri):
                     "request": {
                         "version": "1.1",
                         "method": "GET",
-                        "path": [
-                            "/"
-                        ],
+                        "path": path,
                         "headers": {
                             "Host": [
                                 host_http
@@ -445,6 +490,10 @@ def convert_uri_vmess_ws_json(host, port, socksport, uri):
         host_http = decoded['host']
         headers = {"Host": host_http}
 
+    path = "/"
+    if decoded.get("path", None) is not None:
+        path = decoded['path']
+
     data = {
         "log": {
             "access": "",
@@ -474,7 +523,7 @@ def convert_uri_vmess_ws_json(host, port, socksport, uri):
                 "streamSettings": {
                     "network": network,
                     "wsSettings": {
-                        "path": "/",
+                        "path": path,
                         "headers": headers
                     }
                 },
@@ -600,48 +649,48 @@ def convert_uri_vmess_tcp_json(host, port, socksport, uri):
     headers = {}
     if decoded.get("host", None) is not None:
         host_http = decoded['host']
-        headers = {"Host": host_http}
+        if host_http != "":
+            headers = {"Host": host_http}
 
-        headertype = "http"
-        if decoded.get("type", None) is not None:
-            headertype = decoded['type']
+            headertype = "http"
+            if decoded.get("type", None) is not None:
+                headertype = decoded['type']
 
-        if "headertype" in uri:
-            host_http = splitter(uri, "headertype=")
+            path = ['/']
+            if decoded.get("path", None) is not None:
+                path = [decoded['path']]
 
-        headers = {
-            "tcpSettings": {
-                "header": {
-                    "type": headertype,
-                    "request": {
-                        "version": "1.1",
-                        "method": "GET",
-                        "path": [
-                            "/"
-                        ],
-                        "headers": {
-                            "Host": [
-                                host_http
-                            ],
-                            "User-Agent": [
-                                ""
-                            ],
-                            "Accept-Encoding": [
-                                "gzip, deflate"
-                            ],
-                            "Connection": [
-                                "keep-alive"
-                            ],
-                            "Pragma": "no-cache"
+            headers = {
+                "tcpSettings": {
+                    "header": {
+                        "type": headertype,
+                        "request": {
+                            "version": "1.1",
+                            "method": "GET",
+                            "path": path,
+                            "headers": {
+                                "Host": [
+                                    host_http
+                                ],
+                                "User-Agent": [
+                                    ""
+                                ],
+                                "Accept-Encoding": [
+                                    "gzip, deflate"
+                                ],
+                                "Connection": [
+                                    "keep-alive"
+                                ],
+                                "Pragma": "no-cache"
+                            }
                         }
                     }
                 }
             }
-        }
-        data['outbounds'][0]['streamSettings'].update(headers)
+            data['outbounds'][0]['streamSettings'].update(headers)
 
     if decoded.get("tls", None) is not None:
-        if decoded['tls'].lower() != "none":
+        if decoded['tls'].lower() not in ["none", ""]:
             security = decoded['tls'].lower()
             sni = ""
             if decoded.get("sni", None) is not None:
@@ -777,6 +826,47 @@ def convert_uri_trojan_reality_json(host, port, socksport, uri):
         ]
     }
 
+    if "host=" in uri:
+        host_http = splitter(uri, "host=")
+
+        headertype = "http"
+
+        if "headertype" in uri:
+            headertype = splitter(uri, "headertype=")
+
+        path = ["/"]
+        if "path=" in uri:
+            path = [splitter(uri, "path=")]
+
+        headers = {
+            "tcpSettings": {
+                "header": {
+                    "type": headertype,
+                    "request": {
+                        "version": "1.1",
+                        "method": "GET",
+                        "path": path,
+                        "headers": {
+                            "Host": [
+                                host_http
+                            ],
+                            "User-Agent": [
+                                ""
+                            ],
+                            "Accept-Encoding": [
+                                "gzip, deflate"
+                            ],
+                            "Connection": [
+                                "keep-alive"
+                            ],
+                            "Pragma": "no-cache"
+                        }
+                    }
+                }
+            }
+        }
+        data['outbounds'][0]['streamSettings'].update(headers)
+
     if network == "grpc":
         serviceName = ""
         if "serviceName=" in uri:
@@ -810,6 +900,10 @@ def convert_uri_trojan_ws_json(host, port, socksport, uri):
         host_http = splitter(uri, "host=")
         headers = {"Host": host_http}
 
+    path = "/"
+    if "path=" in uri:
+        path = splitter(uri, "path=")
+
     data = {
         "log": {
             "access": "",
@@ -836,7 +930,7 @@ def convert_uri_trojan_ws_json(host, port, socksport, uri):
                 "streamSettings": {
                     "network": network,
                     "wsSettings": {
-                        "path": "/",
+                        "path": path,
                         "headers": headers
                     }
                 },
@@ -955,6 +1049,10 @@ def convert_uri_trojan_tcp_json(host, port, socksport, uri):
         if "headertype" in uri.lower():
             headertype = splitter(uri.lower(), "headertype=")
 
+        path = ["/"]
+        if "path=" in uri:
+            path = [splitter(uri, "path=")]
+
         headers = {
             "tcpSettings": {
                 "header": {
@@ -962,9 +1060,7 @@ def convert_uri_trojan_tcp_json(host, port, socksport, uri):
                     "request": {
                         "version": "1.1",
                         "method": "GET",
-                        "path": [
-                            "/"
-                        ],
+                        "path": path,
                         "headers": {
                             "Host": [
                                 host_http
